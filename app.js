@@ -46,7 +46,7 @@ form.addEventListener("submit", async (event) => {
   clearResults();
 
   try {
-    const response = await fetch(`/api/extract?url=${encodeURIComponent(value)}`);
+    const response = await fetch(`api/extract?url=${encodeURIComponent(value)}`);
     const payload = await response.json();
 
     if (!response.ok) {
