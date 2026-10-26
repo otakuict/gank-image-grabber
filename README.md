@@ -12,6 +12,39 @@ npm start
 
 The server listens on port `3006` by default. Set `PORT` to use another port.
 
+## Server deployment
+
+The production URL is `https://siggumaseven.men/image-grabber/`. Nginx redirects
+`/image-grabber` to the trailing-slash URL and strips the prefix when forwarding
+to port `3006`. Assets and API calls use relative URLs. `GET /health` returns
+`{"ok":true}` without contacting Gank.
+
+```sh
+docker build -t gank-image-grabber .
+docker run --rm -p 127.0.0.1:3006:3006 --read-only --cap-drop ALL \
+  --security-opt no-new-privileges:true gank-image-grabber
+```
+
+The image runs tests during its build and contains only the web server and UI.
+K3s manifests and the Nginx route template live in `otakuict/private-server-devops`
+under `apps/gank-image-grabber` and `infrastructure/nginx`. See that repository's
+`docs/image-grabber.md` for the initial server setup.
+
+Before merging the deployment workflow, configure these GitHub Actions values:
+
+| Type | Name | Value / scope |
+| --- | --- | --- |
+| Variable | `DOCKERHUB_USERNAME` | `otakuict` |
+| Secret | `DOCKERHUB_TOKEN` | Push access to `otakuict/gank-image-grabber` |
+| Secret | `GITOPS_DISPATCH_TOKEN` | DevOps repository Contents: Write |
+
+Pull requests build and test only. On `main`, CI publishes a full commit-SHA
+image tag and requests an image update PR in the DevOps repository. Merge the
+DevOps onboarding PR before the first publish. New workloads initially have
+zero replicas; enable one replica after the published image tag is configured.
+
+The deployed API is `GET /image-grabber/api/extract?url=<encoded Gank URL>`.
+
 ## GET API
 
 ```http

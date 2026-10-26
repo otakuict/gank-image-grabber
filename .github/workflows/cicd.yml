@@ -1,0 +1,79 @@
+name: Build and publish image grabber
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: image-grabber-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  DOCKERHUB_IMAGE: otakuict/gank-image-grabber
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Build production image and run tests
+        env:
+          SHA: ${{ github.sha }}
+        run: docker build --pull --tag "$DOCKERHUB_IMAGE:$SHA" .
+      - name: Check the production container with a read-only filesystem
+        env:
+          SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          docker run -d --name grabber-check -p 127.0.0.1:3006:3006 \
+            --read-only --cap-drop ALL --security-opt no-new-privileges:true \
+            "$DOCKERHUB_IMAGE:$SHA"
+          trap 'docker logs grabber-check; docker rm -f grabber-check' EXIT
+          for attempt in {1..20}; do
+            if curl --fail --silent http://127.0.0.1:3006/health; then
+              break
+            fi
+            sleep 1
+          done
+          curl --fail --silent http://127.0.0.1:3006/health
+          curl --fail --silent http://127.0.0.1:3006/ > /dev/null
+          curl --fail --silent http://127.0.0.1:3006/app.js > /dev/null
+          test "$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:3006/api/extract)" = 400
+          test "$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:3006/server.js)" = 404
+      - name: Log in to Docker Hub
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: docker/login-action@v4
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Publish commit image
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        env:
+          SHA: ${{ github.sha }}
+        run: docker push "$DOCKERHUB_IMAGE:$SHA"
+
+  gitops:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Request a DevOps image update pull request
+        env:
+          GH_TOKEN: ${{ secrets.GITOPS_DISPATCH_TOKEN }}
+          IMAGE_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          test -n "$GH_TOKEN"
+          jq -n --arg sha "$IMAGE_SHA" \
+            '{event_type: "image-published", client_payload: {application: "gank-image-grabber", sha: $sha}}' \
+            | gh api --method POST repos/otakuict/private-server-devops/dispatches --input -

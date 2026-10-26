@@ -24,6 +24,11 @@ createServer(async (req, res) => {
       `http://${req.headers.host ?? "localhost"}`,
     );
 
+    if (requestUrl.pathname === "/health") {
+      sendJson(res, 200, { ok: true });
+      return;
+    }
+
     if (requestUrl.pathname === "/api/extract") {
       res.setHeader("Access-Control-Allow-Origin", "*");
       res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
@@ -112,6 +117,10 @@ async function handleExtract(requestUrl, res) {
 
 async function handleStatic(pathname, res) {
   const normalizedPath = pathname === "/" ? "/index.html" : pathname;
+  if (!["/index.html", "/app.js"].includes(normalizedPath)) {
+    sendJson(res, 404, { error: "Not found." });
+    return;
+  }
   const relativePath = normalizedPath.replace(/^\/+/, "");
   const filePath = path.resolve(__dirname, relativePath);
   const extension = path.extname(filePath);
