@@ -25,6 +25,22 @@ createServer(async (req, res) => {
     );
 
     if (requestUrl.pathname === "/api/extract") {
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+      res.setHeader("Access-Control-Allow-Headers", "Accept, Content-Type");
+
+      if (req.method === "OPTIONS") {
+        res.writeHead(204);
+        res.end();
+        return;
+      }
+
+      if (req.method !== "GET") {
+        res.setHeader("Allow", "GET, OPTIONS");
+        sendJson(res, 405, { error: "Method not allowed. Use GET." });
+        return;
+      }
+
       await handleExtract(requestUrl, res);
       return;
     }
