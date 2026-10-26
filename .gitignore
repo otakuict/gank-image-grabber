@@ -1,0 +1,14 @@
+# Dependencies
+node_modules/
+
+# Local configuration
+.env
+.env.*
+!.env.example
+
+# Logs and temporary files
+*.log
+*.tmp
+
+# Generated output
+outputs/

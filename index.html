@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Gank Image Grabber</title>
+    <style>
+      :root {
+        --bg: #f5efe4;
+        --panel: rgba(255, 251, 245, 0.9);
+        --ink: #1f1c1a;
+        --muted: #6f655d;
+        --line: rgba(31, 28, 26, 0.12);
+        --accent: #b04a1f;
+        --accent-strong: #8a3411;
+        --shadow: 0 22px 50px rgba(55, 31, 18, 0.12);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: Georgia, "Times New Roman", serif;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at top left, rgba(176, 74, 31, 0.18), transparent 30%),
+          radial-gradient(circle at top right, rgba(71, 116, 94, 0.16), transparent 28%),
+          linear-gradient(180deg, #f9f4eb 0%, var(--bg) 100%);
+      }
+
+      .shell {
+        width: min(1160px, calc(100% - 32px));
+        margin: 40px auto;
+      }
+
+      .hero,
+      .panel,
+      .card {
+        backdrop-filter: blur(18px);
+        background: var(--panel);
+        border: 1px solid var(--line);
+        box-shadow: var(--shadow);
+      }
+
+      .hero {
+        border-radius: 28px;
+        padding: 28px;
+      }
+
+      h1 {
+        margin: 0 0 12px;
+        font-size: clamp(2.2rem, 4vw, 4rem);
+        line-height: 0.95;
+        letter-spacing: -0.04em;
+      }
+
+      .lede {
+        margin: 0;
+        max-width: 60ch;
+        font-size: 1.05rem;
+        line-height: 1.6;
+        color: var(--muted);
+      }
+
+      .panel {
+        margin-top: 22px;
+        padding: 22px;
+        border-radius: 24px;
+      }
+
+      .toolbar {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) repeat(3, auto);
+        gap: 12px;
+        align-items: center;
+      }
+
+      input[type="url"] {
+        width: 100%;
+        padding: 16px 18px;
+        border-radius: 16px;
+        border: 1px solid var(--line);
+        font: inherit;
+        font-size: 1rem;
+        color: var(--ink);
+        background: rgba(255, 255, 255, 0.8);
+      }
+
+      button {
+        border: 0;
+        border-radius: 16px;
+        padding: 14px 18px;
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+        transition: transform 120ms ease, opacity 120ms ease, background 120ms ease;
+      }
+
+      button:hover {
+        transform: translateY(-1px);
+      }
+
+      button:disabled {
+        opacity: 0.65;
+        cursor: wait;
+        transform: none;
+      }
+
+      .primary {
+        color: #fff7f2;
+        background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
+      }
+
+      .ghost {
+        color: var(--ink);
+        background: rgba(255, 255, 255, 0.72);
+        border: 1px solid var(--line);
+      }
+
+      .status {
+        min-height: 1.5rem;
+        margin-top: 12px;
+        color: var(--muted);
+      }
+
+      .status.error {
+        color: #8f251f;
+      }
+
+      .summary {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 24px;
+      }
+
+      .summary-chip {
+        padding: 10px 14px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.72);
+        border: 1px solid var(--line);
+        color: var(--muted);
+      }
+
+      .results {
+        margin-top: 26px;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 18px;
+      }
+
+      .card {
+        border-radius: 22px;
+        overflow: hidden;
+      }
+
+      .thumb {
+        width: 100%;
+        aspect-ratio: 4 / 3;
+        object-fit: cover;
+        background: rgba(31, 28, 26, 0.08);
+      }
+
+      .card-body {
+        padding: 18px;
+      }
+
+      .eyebrow {
+        margin: 0 0 8px;
+        font-size: 0.8rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .title-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .title-row h2 {
+        margin: 0;
+        font-size: 1.2rem;
+      }
+
+      .meta {
+        margin: 10px 0 0;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+
+      .meta strong {
+        color: var(--ink);
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 16px;
+      }
+
+      .actions a,
+      .actions button {
+        text-decoration: none;
+        font-size: 0.95rem;
+      }
+
+      .actions a {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 12px 14px;
+        border-radius: 14px;
+        color: var(--ink);
+        background: rgba(255, 255, 255, 0.72);
+        border: 1px solid var(--line);
+      }
+
+      .bulk-box {
+        margin-top: 24px;
+      }
+
+      textarea {
+        width: 100%;
+        min-height: 180px;
+        resize: vertical;
+        padding: 16px;
+        border-radius: 20px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.82);
+        color: var(--ink);
+        font: 0.94rem/1.5 Consolas, Monaco, monospace;
+      }
+
+      .hint {
+        margin-top: 12px;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+
+      @media (max-width: 740px) {
+        .shell {
+          width: min(100% - 18px, 1160px);
+          margin: 18px auto;
+        }
+
+        .hero,
+        .panel {
+          padding: 18px;
+          border-radius: 22px;
+        }
+
+        .toolbar {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <h1>Gank Image Grabber</h1>
+        <p class="lede">
+          Paste a Gank service or post URL and the page will extract image media from the
+          Nuxt payload, then convert Googleusercontent images to their original `=s0`
+          variants.
+        </p>
+      </section>
+
+      <section class="panel">
+        <form id="grab-form">
+          <div class="toolbar">
+            <input
+              id="service-url"
+              name="service-url"
+              type="url"
+              required
+              spellcheck="false"
+              placeholder="https://ganknow.com/services/... or https://ganknow.com/post/..."
+              value="https://ganknow.com/services/89471-yoichi69-260329-belle"
+            >
+            <button class="primary" id="grab-button" type="submit">Grab Images</button>
+            <button class="ghost" id="service-sample-button" type="button">Service Sample</button>
+            <button class="ghost" id="post-sample-button" type="button">Post Sample</button>
+          </div>
+          <div id="status" class="status" aria-live="polite"></div>
+        </form>
+
+        <div id="summary" class="summary" hidden></div>
+        <div id="results" class="results"></div>
+
+        <div id="bulk-box" class="bulk-box" hidden>
+          <div class="title-row">
+            <h2>Original URLs</h2>
+            <button class="ghost" id="copy-all-button" type="button">Copy All</button>
+          </div>
+          <textarea id="bulk-output" readonly></textarea>
+          <p class="hint">
+            This page uses a local Node server because browsers cannot reliably fetch
+            `ganknow.com` HTML cross-origin.
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <script src="/app.js" type="module"></script>
+  </body>
+  </html>

@@ -1,0 +1,8 @@
+{
+  "name": "gank-carousel-grabber",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  }
+}
